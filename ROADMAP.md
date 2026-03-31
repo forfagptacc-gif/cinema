@@ -179,21 +179,21 @@ UX:
 ### Этап 14. Тестирование
 
 Unit tests:
-- [ ] `MovieService`.
-- [ ] `MovieStore`.
-- [ ] `StorageService`.
+- [x] `MovieService`.
+- [x] `MovieStore`.
+- [x] `StorageService`.
 
 Component tests:
-- [ ] Search feature.
-- [ ] Movie details.
-- [ ] Favorites.
+- [x] Search feature.
+- [x] Movie details.
+- [x] Favorites.
 
 ---
 
 ### Этап 15. Dev Experience
-- [ ] Husky (pre‑commit hook).
-- [ ] `lint-staged` для форматирования/линта только изменённых файлов.
-- [ ] Стиль коммитов (conventional commits).
+- [x] Husky (pre‑commit hook).
+- [x] `lint-staged` для форматирования/линта только изменённых файлов.
+- [x] Стиль коммитов (conventional commits).
 
 ---
 

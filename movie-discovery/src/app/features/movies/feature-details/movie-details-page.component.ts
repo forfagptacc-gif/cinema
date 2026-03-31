@@ -7,6 +7,7 @@ import { map } from 'rxjs';
 import { Movie } from '../data-access/models/movie.model';
 import { movieResolver } from './movie.resolver';
 import { EmptyStateComponent } from '@shared/ui/empty-state/empty-state.component';
+import { FavoritesService } from '../data-access/services/favorites.service';
 
 @Component({
   selector: 'app-movie-details-page',
@@ -33,7 +34,14 @@ import { EmptyStateComponent } from '@shared/ui/empty-state/empty-state.componen
               <span class="muted">{{ m.release_date || '—' }}</span>
               <span class="rating">★ {{ m.vote_average | number: '1.1-1' }}</span>
             </div>
+            <div class="genres" *ngIf="m.genres?.length">
+              <span class="genre" *ngFor="let g of m.genres">{{ g.name }}</span>
+            </div>
             <p class="overview">{{ m.overview || 'Описание отсутствует.' }}</p>
+
+            <button class="fav" type="button" (click)="toggleFavorite(m)">
+              {{ favorites.has(m.id) ? '♥ В избранном' : '♡ В избранное' }}
+            </button>
           </div>
         </div>
       </ng-container>
@@ -109,6 +117,35 @@ import { EmptyStateComponent } from '@shared/ui/empty-state/empty-state.componen
         line-height: 1.6;
         opacity: 0.9;
       }
+
+      .genres {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0.25rem 0 0.75rem;
+      }
+      .genre {
+        padding: 0.25rem 0.6rem;
+        border-radius: 9999px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      .fav {
+        margin-top: 1rem;
+        border-radius: 9999px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(0, 0, 0, 0.35);
+        color: #ffc371;
+        padding: 0.6rem 1rem;
+        cursor: pointer;
+        font: inherit;
+      }
+      .fav:hover {
+        background: rgba(0, 0, 0, 0.45);
+      }
     `
   ]
 })
@@ -116,6 +153,7 @@ export class MovieDetailsPageComponent {
   static readonly resolver = movieResolver;
 
   private readonly route = inject(ActivatedRoute);
+  readonly favorites = inject(FavoritesService);
 
   readonly movie = toSignal<Movie | null>(
     this.route.paramMap.pipe(map(() => (this.route.snapshot.data['movie'] as Movie | undefined) ?? null)),
@@ -123,6 +161,10 @@ export class MovieDetailsPageComponent {
   );
 
   readonly hasMovie = computed(() => Boolean(this.movie()));
+
+  toggleFavorite(m: Movie): void {
+    this.favorites.toggle(m);
+  }
 
   posterUrl(path: string): string {
     return `https://image.tmdb.org/t/p/w500${path}`;

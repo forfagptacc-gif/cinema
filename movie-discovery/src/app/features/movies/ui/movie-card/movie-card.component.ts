@@ -1,7 +1,8 @@
-import { Component, input } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { Movie } from '../../data-access/models/movie.model';
+import { FavoritesService } from '../../data-access/services/favorites.service';
 
 @Component({
   selector: 'app-movie-card',
@@ -17,6 +18,15 @@ import { Movie } from '../../data-access/models/movie.model';
           [alt]="movie().title"
           loading="lazy"
         />
+        <button
+          class="card__fav"
+          type="button"
+          [attr.aria-pressed]="isFavorite()"
+          (click)="onToggleFavorite($event)"
+          title="В избранное"
+        >
+          {{ isFavorite() ? '♥' : '♡' }}
+        </button>
       </div>
       <div class="card__body">
         <div class="card__title">{{ movie().title }}</div>
@@ -41,6 +51,7 @@ import { Movie } from '../../data-access/models/movie.model';
       .card__poster {
         aspect-ratio: 2 / 3;
         background: rgba(255, 255, 255, 0.04);
+        position: relative;
       }
 
       .card__poster--empty {
@@ -52,6 +63,28 @@ import { Movie } from '../../data-access/models/movie.model';
         height: 100%;
         object-fit: cover;
         display: block;
+      }
+
+      .card__fav {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 38px;
+        height: 38px;
+        border-radius: 9999px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(0, 0, 0, 0.45);
+        color: #ffc371;
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(6px);
+      }
+
+      .card__fav:hover {
+        background: rgba(0, 0, 0, 0.55);
       }
 
       .card__body {
@@ -84,7 +117,18 @@ import { Movie } from '../../data-access/models/movie.model';
   ]
 })
 export class MovieCardComponent {
+  private readonly favorites = inject(FavoritesService);
   readonly movie = input.required<Movie>();
+
+  isFavorite(): boolean {
+    return this.favorites.has(this.movie().id);
+  }
+
+  onToggleFavorite(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.favorites.toggle(this.movie());
+  }
 
   posterUrl(path: string): string {
     return `https://image.tmdb.org/t/p/w342${path}`;

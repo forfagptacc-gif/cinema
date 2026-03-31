@@ -7,6 +7,7 @@ export interface Movie {
   readonly release_date: string;
   readonly vote_average: number;
   readonly genre_ids?: number[];
+  readonly genres?: ReadonlyArray<{ readonly id: number; readonly name: string }>;
 }
 
 export interface MovieSearchResponse {

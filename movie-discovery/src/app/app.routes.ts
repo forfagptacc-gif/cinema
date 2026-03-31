@@ -4,28 +4,18 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'search' },
   {
     path: 'search',
-    loadComponent: () =>
-      import('./features/movies/feature-search/movie-search-page.component').then(
-        (m) => m.MovieSearchPageComponent
-      )
+    loadChildren: () =>
+      import('./features/movies/feature-search/search.routes').then((r) => r.SEARCH_ROUTES)
   },
   {
     path: 'movie/:id',
-    loadComponent: () =>
-      import('./features/movies/feature-details/movie-details-page.component').then(
-        (m) => m.MovieDetailsPageComponent
-      ),
-    resolve: {
-      movie: () =>
-        import('./features/movies/feature-details/movie.resolver').then((r) => r.movieResolver)
-    }
+    loadChildren: () =>
+      import('./features/movies/feature-details/details.routes').then((r) => r.DETAILS_ROUTES)
   },
   {
     path: 'favorites',
-    loadComponent: () =>
-      import('./features/movies/feature-favorites/movie-favorites-page.component').then(
-        (m) => m.MovieFavoritesPageComponent
-      )
+    loadChildren: () =>
+      import('./features/movies/feature-favorites/favorites.routes').then((r) => r.FAVORITES_ROUTES)
   },
   { path: '**', redirectTo: 'search' }
 ];

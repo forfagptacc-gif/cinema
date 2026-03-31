@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { Movie } from '../../data-access/models/movie.model';
@@ -8,6 +8,7 @@ import { FavoritesService } from '../../data-access/services/favorites.service';
   selector: 'app-movie-card',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <article class="card">
       <div class="card__poster" [class.card__poster--empty]="!movie().poster_path">
@@ -17,6 +18,7 @@ import { FavoritesService } from '../../data-access/services/favorites.service';
           [src]="posterUrl(p)"
           [alt]="movie().title"
           loading="lazy"
+          decoding="async"
         />
         <button
           class="card__fav"

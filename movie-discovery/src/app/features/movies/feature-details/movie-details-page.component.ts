@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -13,6 +13,7 @@ import { FavoritesService } from '../data-access/services/favorites.service';
   selector: 'app-movie-details-page',
   standalone: true,
   imports: [CommonModule, RouterLink, EmptyStateComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
       <a class="back" routerLink="/search">← Назад к поиску</a>

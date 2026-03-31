@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, filter, switchMap, tap } from 'rxjs';
@@ -10,6 +10,7 @@ import { MovieService } from '../data-access/services/movie.service';
 import { LoaderComponent } from '@shared/ui/loader/loader.component';
 import { EmptyStateComponent } from '@shared/ui/empty-state/empty-state.component';
 import { MovieCardComponent } from '../ui/movie-card/movie-card.component';
+import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.directive';
 
 @Component({
   selector: 'app-movie-search-page',
@@ -20,8 +21,10 @@ import { MovieCardComponent } from '../ui/movie-card/movie-card.component';
     RouterLink,
     LoaderComponent,
     EmptyStateComponent,
-    MovieCardComponent
+    MovieCardComponent,
+    InfiniteScrollDirective
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page">
       <header class="page__header">
@@ -57,6 +60,17 @@ import { MovieCardComponent } from '../ui/movie-card/movie-card.component';
           <app-movie-card [movie]="m" />
         </a>
       </div>
+
+      <div class="more" *ngIf="loadingMore()">
+        <app-loader />
+      </div>
+
+      <div
+        class="sentinel"
+        appInfiniteScroll
+        [disabled]="!canLoadMore()"
+        (reached)="loadNextPage()"
+      ></div>
     </section>
   `,
   styles: [
@@ -102,6 +116,14 @@ import { MovieCardComponent } from '../ui/movie-card/movie-card.component';
         text-decoration: none;
         color: inherit;
       }
+
+      .more {
+        margin-top: 1rem;
+      }
+
+      .sentinel {
+        height: 1px;
+      }
     `
   ]
 })
@@ -113,13 +135,27 @@ export class MovieSearchPageComponent {
 
   private readonly _movies = signal<Movie[]>([]);
   private readonly _loading = signal(false);
+  private readonly _loadingMore = signal(false);
   private readonly _error = signal<string | null>(null);
   private readonly _hasSearched = signal(false);
+  private readonly _query = signal<string>('');
+  private readonly _page = signal(1);
+  private readonly _totalPages = signal(1);
 
   readonly movies = computed(() => this._movies());
   readonly loading = computed(() => this._loading());
+  readonly loadingMore = computed(() => this._loadingMore());
   readonly error = computed(() => this._error());
   readonly showEmpty = computed(() => this._hasSearched() && this._movies().length === 0);
+  readonly canLoadMore = computed(
+    () =>
+      this._hasSearched() &&
+      !this._loading() &&
+      !this._loadingMore() &&
+      !this._error() &&
+      this._movies().length > 0 &&
+      this._page() < this._totalPages()
+  );
 
   constructor() {
     this.queryControl.valueChanges
@@ -133,6 +169,7 @@ export class MovieSearchPageComponent {
         tap(() => {
           this._hasSearched.set(true);
           this._loading.set(true);
+          this._loadingMore.set(false);
         }),
         switchMap((q) => this.api.searchMovies(q.trim(), 1)),
         takeUntilDestroyed(this.destroyRef)
@@ -140,11 +177,39 @@ export class MovieSearchPageComponent {
       .subscribe({
         next: (res) => {
           this._movies.set(res.results ?? []);
+          this._query.set(this.queryControl.value.trim());
+          this._page.set(res.page ?? 1);
+          this._totalPages.set(res.total_pages ?? 1);
           this._loading.set(false);
         },
         error: (err: unknown) => {
           this._error.set(err instanceof Error ? err.message : 'Search failed');
           this._loading.set(false);
+        }
+      });
+  }
+
+  loadNextPage(): void {
+    if (!this.canLoadMore()) return;
+    const nextPage = this._page() + 1;
+    const query = this._query();
+
+    this._loadingMore.set(true);
+    this._error.set(null);
+
+    this.api
+      .searchMovies(query, nextPage)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this._movies.set([...this._movies(), ...(res.results ?? [])]);
+          this._page.set(res.page ?? nextPage);
+          this._totalPages.set(res.total_pages ?? this._totalPages());
+          this._loadingMore.set(false);
+        },
+        error: (err: unknown) => {
+          this._error.set(err instanceof Error ? err.message : 'Load next page failed');
+          this._loadingMore.set(false);
         }
       });
   }

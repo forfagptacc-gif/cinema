@@ -6,7 +6,9 @@ import { Component, input } from '@angular/core';
   template: `
     <section class="empty">
       <p class="empty__title">{{ title() }}</p>
-      <p class="empty__subtitle" *ngIf="subtitle() as s">{{ s }}</p>
+      @if (subtitle(); as s) {
+        <p class="empty__subtitle">{{ s }}</p>
+      }
     </section>
   `,
   styles: [

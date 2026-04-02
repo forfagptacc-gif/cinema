@@ -17,3 +17,17 @@ export interface MovieSearchResponse {
   readonly total_results: number;
 }
 
+export interface MovieVideo {
+  readonly id: string;
+  readonly key: string;
+  readonly name: string;
+  readonly site: string;
+  readonly type: string;
+  readonly official?: boolean;
+}
+
+export interface MovieVideosResponse {
+  readonly id: number;
+  readonly results: MovieVideo[];
+}
+

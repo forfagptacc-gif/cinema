@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, shareReplay } from 'rxjs';
 
 import { ConfigService } from '@core/config.service';
-import { Movie, MovieSearchResponse } from '../models/movie.model';
+import { Movie, MovieSearchResponse, MovieVideosResponse } from '../models/movie.model';
 
 interface CacheEntry<T> {
   readonly timestamp: number;
@@ -42,6 +42,15 @@ export class MovieService {
     return this.getOrCreate<Movie>(cacheKey, () => {
       const params = new HttpParams().set('api_key', this.config.api.apiKey ?? '');
       return this.http.get<Movie>(`${this.config.api.baseUrl}/movie/${id}`, { params });
+    });
+  }
+
+  getMovieVideos(id: number): Observable<MovieVideosResponse> {
+    const cacheKey = `movie:videos:${id}`;
+
+    return this.getOrCreate<MovieVideosResponse>(cacheKey, () => {
+      const params = new HttpParams().set('api_key', this.config.api.apiKey ?? '');
+      return this.http.get<MovieVideosResponse>(`${this.config.api.baseUrl}/movie/${id}/videos`, { params });
     });
   }
 

@@ -2,6 +2,6 @@ export const environment = {
   production: false,
   apiBaseUrl: 'https://api.themoviedb.org/3',
   // TODO: вынести в реальные env переменные при деплое
-  apiKey: 'YOUR_TMDB_API_KEY'
+  apiKey: 'd5c5ba05e69e9299f75bfbcdfd5f5ff6'
 };
 

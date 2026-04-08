@@ -36,6 +36,21 @@ export class MovieService {
     });
   }
 
+  /** Популярные фильмы (для витрины на стартовом экране и т.п.). */
+  getPopularMovies(page = 1): Observable<MovieSearchResponse> {
+    const cacheKey = `popular:${page}`;
+
+    return this.getOrCreate<MovieSearchResponse>(cacheKey, () => {
+      const params = new HttpParams()
+        .set('page', String(page))
+        .set('api_key', this.config.api.apiKey ?? '');
+
+      return this.http.get<MovieSearchResponse>(`${this.config.api.baseUrl}/movie/popular`, {
+        params
+      });
+    });
+  }
+
   getMovie(id: number): Observable<Movie> {
     const cacheKey = `movie:${id}`;
 

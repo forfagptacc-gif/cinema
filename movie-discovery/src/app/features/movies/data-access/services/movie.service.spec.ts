@@ -39,5 +39,17 @@ describe('MovieService', () => {
     expect(req.request.params.get('page')).toBe('2');
     req.flush({ page: 2, results: [{ id: 1 }], total_pages: 3, total_results: 1 });
   });
+
+  it('getPopularMovies requests /movie/popular with page', () => {
+    service.getPopularMovies(3).subscribe((res) => {
+      expect(res.page).toBe(3);
+    });
+
+    const req = http.expectOne(
+      (r) => r.url === 'https://example.test/movie/popular' && r.params.get('page') === '3'
+    );
+    expect(req.request.params.get('api_key')).toBe('key');
+    req.flush({ page: 3, results: [{ id: 2 }], total_pages: 10, total_results: 100 });
+  });
 });
 

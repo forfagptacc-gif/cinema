@@ -32,22 +32,6 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
         <p class="page__subtitle">Введите минимум 2 символа — покажем совпадения из TMDB.</p>
       </header>
 
-      <div class="welcome" *ngIf="showHero()">
-        <div class="welcome__inner">
-          <p class="welcome__kicker">Домашний каталог</p>
-          <h3 class="welcome__title">Найдите фильм за пару секунд</h3>
-          <p class="welcome__text">
-            Подсказки ниже — быстрый старт. Или введите свой запрос: жанр, год, часть названия.
-          </p>
-          <div class="welcome__chips" role="group" aria-label="Быстрый поиск">
-            <button type="button" class="chip" (click)="pickSuggestion('Inception')">Inception</button>
-            <button type="button" class="chip" (click)="pickSuggestion('The Matrix')">The Matrix</button>
-            <button type="button" class="chip" (click)="pickSuggestion('Dune')">Dune</button>
-            <button type="button" class="chip" (click)="pickSuggestion('Interstellar')">Interstellar</button>
-          </div>
-        </div>
-      </div>
-
       <div class="search">
         <input
           class="search__input"
@@ -56,6 +40,58 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
           autocomplete="off"
           aria-label="Поиск фильма"
         />
+      </div>
+
+      <div class="welcome" *ngIf="showHero()">
+        <div class="welcome__inner">
+          <p class="welcome__kicker">Домашний каталог</p>
+          <h3 class="welcome__title">Найдите фильм за пару секунд</h3>
+          <p class="welcome__text">
+            Ниже — случайная витрина из популярного на TMDB и быстрые подсказки. Или введите свой запрос.
+          </p>
+
+          <div class="spotlight" aria-labelledby="spotlight-heading">
+            <div class="spotlight__head">
+              <h3 id="spotlight-heading" class="spotlight__heading">Случайная витрина</h3>
+              <span class="spotlight__hint">Популярное на TMDB — каждый раз другая страница и порядок</span>
+            </div>
+
+            <div class="spotlight__strip" *ngIf="spotlightLoading()">
+              <div class="spotlight__skel" *ngFor="let _ of spotlightSkeletonSlots; trackBy: trackByIndex"></div>
+            </div>
+
+            <div class="spotlight__strip" *ngIf="!spotlightLoading() && spotlight().length">
+              <a
+                class="spotlight__tile"
+                *ngFor="let m of spotlight(); trackBy: trackById"
+                [routerLink]="['/movie', m.id]"
+              >
+                <div class="spotlight__poster" [class.spotlight__poster--empty]="!m.poster_path">
+                  <img
+                    *ngIf="m.poster_path as p"
+                    class="spotlight__img"
+                    [src]="posterUrl(p)"
+                    [alt]="m.title"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <span class="spotlight__name">{{ m.title }}</span>
+              </a>
+            </div>
+
+            <p class="spotlight__err" *ngIf="!spotlightLoading() && spotlightError()" role="status">
+              {{ spotlightError() }}
+            </p>
+          </div>
+
+          <div class="welcome__chips" role="group" aria-label="Быстрый поиск">
+            <button type="button" class="chip" (click)="pickSuggestion('Inception')">Inception</button>
+            <button type="button" class="chip" (click)="pickSuggestion('The Matrix')">The Matrix</button>
+            <button type="button" class="chip" (click)="pickSuggestion('Dune')">Dune</button>
+            <button type="button" class="chip" (click)="pickSuggestion('Interstellar')">Interstellar</button>
+          </div>
+        </div>
       </div>
 
       <div class="skeleton-grid" *ngIf="loading() && !showHero()">
@@ -98,7 +134,7 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
         padding: 1rem 0 2rem;
       }
       .page__header {
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
       }
       .page__title {
         margin: 0 0 0.25rem;
@@ -134,10 +170,109 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
         line-height: 1.25;
       }
       .welcome__text {
-        margin: 0 0 0.85rem;
+        margin: 0 0 1rem;
         line-height: 1.55;
         color: var(--text-muted);
       }
+
+      .spotlight {
+        margin: 0 0 1.1rem;
+        padding: 0;
+      }
+      .spotlight__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .spotlight__heading {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+      }
+      .spotlight__hint {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        max-width: 28rem;
+        line-height: 1.35;
+      }
+      .spotlight__strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.65rem;
+      }
+      @media (min-width: 520px) {
+        .spotlight__strip {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+      }
+      .spotlight__tile {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        text-decoration: none;
+        color: inherit;
+        border-radius: 14px;
+        padding: 0.2rem;
+        margin: -0.2rem;
+        transition: transform 0.2s ease, filter 0.2s ease;
+      }
+      .spotlight__tile:hover {
+        transform: translateY(-3px);
+        filter: brightness(1.06);
+      }
+      .spotlight__tile:focus-visible {
+        outline: 2px solid rgba(255, 195, 113, 0.55);
+        outline-offset: 3px;
+      }
+      .spotlight__poster {
+        aspect-ratio: 2 / 3;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-subtle);
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+      }
+      .spotlight__poster--empty {
+        background: linear-gradient(145deg, rgba(255, 107, 107, 0.2), rgba(255, 195, 113, 0.12));
+      }
+      .spotlight__img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .spotlight__name {
+        font-size: 0.78rem;
+        line-height: 1.25;
+        color: var(--text-muted);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .spotlight__skel {
+        aspect-ratio: 2 / 3;
+        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+        background: linear-gradient(
+          100deg,
+          rgba(255, 255, 255, 0.06) 20%,
+          rgba(255, 255, 255, 0.14) 38%,
+          rgba(255, 255, 255, 0.06) 56%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.25s linear infinite;
+      }
+      .spotlight__err {
+        margin: 0.5rem 0 0;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+      }
+
       .welcome__chips {
         display: flex;
         flex-wrap: wrap;
@@ -160,7 +295,7 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
       }
 
       .search {
-        margin: 0.75rem 0 0.5rem;
+        margin: 0 0 1rem;
       }
       .search__input {
         width: 100%;
@@ -234,6 +369,7 @@ export class MovieSearchPageComponent {
 
   /** Слоты для skeleton — отдельный массив, чтобы strict шаблон не ругался на литералы в *ngFor */
   readonly skeletonSlots = [0, 1, 2, 3, 4, 5] as const;
+  readonly spotlightSkeletonSlots = [0, 1, 2, 3, 4, 5] as const;
 
   private readonly _movies = signal<Movie[]>([]);
   private readonly _loading = signal(false);
@@ -245,10 +381,17 @@ export class MovieSearchPageComponent {
   private readonly _totalPages = signal(1);
   private readonly _draft = signal('');
 
+  private readonly _spotlight = signal<Movie[]>([]);
+  private readonly _spotlightLoading = signal(true);
+  private readonly _spotlightError = signal<string | null>(null);
+
   readonly movies = computed(() => this._movies());
   readonly loading = computed(() => this._loading());
   readonly loadingMore = computed(() => this._loadingMore());
   readonly error = computed(() => this._error());
+  readonly spotlight = computed(() => this._spotlight());
+  readonly spotlightLoading = computed(() => this._spotlightLoading());
+  readonly spotlightError = computed(() => this._spotlightError());
   readonly showHero = computed(() => this._draft().trim().length < 2);
   readonly showEmpty = computed(() => this._hasSearched() && this._movies().length === 0);
   readonly canLoadMore = computed(
@@ -263,6 +406,7 @@ export class MovieSearchPageComponent {
 
   constructor() {
     this._draft.set(this.queryControl.value);
+    this.loadSpotlight();
     this.queryControl.valueChanges
       .pipe(
         tap((q) => this._draft.set(q)),
@@ -330,6 +474,45 @@ export class MovieSearchPageComponent {
 
   pickSuggestion(value: string): void {
     this.queryControl.setValue(value);
+  }
+
+  posterUrl(path: string): string {
+    return `https://image.tmdb.org/t/p/w342${path}`;
+  }
+
+  private loadSpotlight(): void {
+    this._spotlightLoading.set(true);
+    this._spotlightError.set(null);
+    const page = Math.floor(Math.random() * 10) + 1;
+    this.api
+      .getPopularMovies(page)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const list = [...(res.results ?? [])];
+          shuffleInPlace(list);
+          const withPoster = list.filter((m) => m.poster_path);
+          const pool = withPoster.length >= 6 ? withPoster : list;
+          this._spotlight.set(pool.slice(0, 6));
+          this._spotlightLoading.set(false);
+        },
+        error: () => {
+          this._spotlightError.set(
+            'Не удалось загрузить витрину. Проверьте ключ TMDB (env или window.__env).'
+          );
+          this._spotlightLoading.set(false);
+        }
+      });
+  }
+}
+
+function shuffleInPlace<T>(items: T[]): void {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const a = items[i]!;
+    const b = items[j]!;
+    items[i] = b;
+    items[j] = a;
   }
 }
 

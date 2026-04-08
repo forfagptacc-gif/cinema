@@ -27,6 +27,10 @@ import { Component, input } from '@angular/core';
 
       .empty__subtitle {
         font-size: 0.9rem;
+        max-width: 44rem;
+        margin: 0.5rem auto 0;
+        line-height: 1.45;
+        text-align: left;
       }
     `
   ]

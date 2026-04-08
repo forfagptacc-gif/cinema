@@ -13,6 +13,8 @@ import {
 } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+import { ConfigService } from '@core/config.service';
+import { friendlyHttpErrorMessage } from '@core/http-error.util';
 import { Movie, MovieSearchResponse } from '../data-access/models/movie.model';
 import { MovieService } from '../data-access/services/movie.service';
 import { LoaderComponent } from '@shared/ui/loader/loader.component';
@@ -39,6 +41,13 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
         <h2 class="page__title">Поиск</h2>
         <p class="page__subtitle">Введите минимум 2 символа — покажем совпадения из TMDB.</p>
       </header>
+
+      <div class="api-warning" *ngIf="!hasTmdbApiKey" role="status">
+        <strong>Ключ TMDB не задан.</strong>
+        Укажите его в файле <code>public/env.js</code> (поле <code>TMDB_API_KEY</code>) или в переменных окружения при сборке.
+        Ключ выдаётся бесплатно на
+        <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer noopener">themoviedb.org → Settings → API</a>.
+      </div>
 
       <div class="search">
         <input
@@ -108,7 +117,7 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
 
       <app-empty-state
         *ngIf="!showHero() && !loading() && error()"
-        title="Ошибка"
+        title="Ошибка запроса"
         [subtitle]="error()"
       />
 
@@ -150,6 +159,26 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
       .page__subtitle {
         margin: 0;
         opacity: 0.7;
+      }
+
+      .api-warning {
+        margin: 0 0 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 195, 113, 0.38);
+        background: rgba(255, 195, 113, 0.09);
+        color: var(--text);
+        font-size: 0.9rem;
+        line-height: 1.45;
+      }
+      .api-warning code {
+        font-size: 0.86em;
+        padding: 0.1em 0.35em;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.25);
+      }
+      .api-warning a {
+        color: #ffc371;
       }
 
       .welcome {
@@ -371,7 +400,13 @@ import { InfiniteScrollDirective } from '@shared/directives/infinite-scroll.dire
 })
 export class MovieSearchPageComponent {
   private readonly api = inject(MovieService);
+  private readonly config = inject(ConfigService);
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Есть ли ключ для запросов к TMDB (env / window.__env). */
+  get hasTmdbApiKey(): boolean {
+    return Boolean(this.config.api.apiKey);
+  }
 
   readonly queryControl = new FormControl<string>('', { nonNullable: true });
 
@@ -432,7 +467,7 @@ export class MovieSearchPageComponent {
         switchMap((q) =>
           this.api.searchMovies(q.trim(), 1).pipe(
             catchError((err: unknown) => {
-              this._error.set(errorMessage(err));
+              this._error.set(friendlyHttpErrorMessage(err, 'Поиск'));
               this._loading.set(false);
               return of(EMPTY_SEARCH_RESPONSE);
             })
@@ -463,7 +498,7 @@ export class MovieSearchPageComponent {
       .searchMovies(query, nextPage)
       .pipe(
         catchError((err: unknown) => {
-          this._error.set(errorMessage(err));
+          this._error.set(friendlyHttpErrorMessage(err, 'Подгрузка страницы'));
           this._loadingMore.set(false);
           return of({
             page: nextPage,
@@ -506,22 +541,21 @@ export class MovieSearchPageComponent {
     const page = Math.floor(Math.random() * 10) + 1;
     this.api
       .getPopularMovies(page)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          const list = [...(res.results ?? [])];
-          shuffleInPlace(list);
-          const withPoster = list.filter((m) => m.poster_path);
-          const pool = withPoster.length >= 6 ? withPoster : list;
-          this._spotlight.set(pool.slice(0, 6));
+      .pipe(
+        catchError((err: unknown) => {
+          this._spotlightError.set(friendlyHttpErrorMessage(err, 'Витрина'));
           this._spotlightLoading.set(false);
-        },
-        error: () => {
-          this._spotlightError.set(
-            'Не удалось загрузить витрину. Проверьте ключ TMDB (env или window.__env).'
-          );
-          this._spotlightLoading.set(false);
-        }
+          return of(EMPTY_SEARCH_RESPONSE);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((res) => {
+        const list = [...(res.results ?? [])];
+        shuffleInPlace(list);
+        const withPoster = list.filter((m) => m.poster_path);
+        const pool = withPoster.length >= 6 ? withPoster : list;
+        this._spotlight.set(pool.slice(0, 6));
+        this._spotlightLoading.set(false);
       });
   }
 }
@@ -532,15 +566,6 @@ const EMPTY_SEARCH_RESPONSE: MovieSearchResponse = {
   total_pages: 1,
   total_results: 0
 };
-
-function errorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'object' && err !== null && 'message' in err) {
-    const m = (err as { message?: unknown }).message;
-    if (typeof m === 'string' && m.length) return m;
-  }
-  return 'Ошибка запроса';
-}
 
 function shuffleInPlace<T>(items: T[]): void {
   for (let i = items.length - 1; i > 0; i--) {
